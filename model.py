@@ -4,7 +4,7 @@ import tfops as Z
 import optim
 import numpy as np
 import horovod.tensorflow as hvd
-from tensorflow.contrib.framework.python.ops import add_arg_scope, arg_scope
+from tensorflow.contrib.framework.python.ops import add_arg_scope
 
 
 '''
@@ -447,7 +447,7 @@ def invertible_1x1_conv(name, z, logdet, reverse=False):
             np_u = np.triu(np_u, k=1)
 
             p = tf.get_variable("P", initializer=np_p, trainable=False)
-            l = tf.get_variable("L", initializer=np_l)
+            tfl = tf.get_variable("L", initializer=np_l)
             sign_s = tf.get_variable(
                 "sign_S", initializer=np_sign_s, trainable=False)
             log_s = tf.get_variable("log_S", initializer=np_log_s)
@@ -455,7 +455,7 @@ def invertible_1x1_conv(name, z, logdet, reverse=False):
             u = tf.get_variable("U", initializer=np_u)
 
             p = tf.cast(p, dtype)
-            l = tf.cast(l, dtype)
+            tfl = tf.cast(tfl, dtype)
             sign_s = tf.cast(sign_s, dtype)
             log_s = tf.cast(log_s, dtype)
             u = tf.cast(u, dtype)
@@ -463,13 +463,13 @@ def invertible_1x1_conv(name, z, logdet, reverse=False):
             w_shape = [shape[3], shape[3]]
 
             l_mask = np.tril(np.ones(w_shape, dtype=dtype), -1)
-            l = l * l_mask + tf.eye(*w_shape, dtype=dtype)
+            tfl = tfl * l_mask + tf.eye(*w_shape, dtype=dtype)
             u = u * np.transpose(l_mask) + tf.diag(sign_s * tf.exp(log_s))
-            w = tf.matmul(p, tf.matmul(l, u))
+            w = tf.matmul(p, tf.matmul(tfl, u))
 
             if True:
                 u_inv = tf.matrix_inverse(u)
-                l_inv = tf.matrix_inverse(l)
+                l_inv = tf.matrix_inverse(tfl)
                 p_inv = tf.matrix_inverse(p)
                 w_inv = tf.matmul(u_inv, tf.matmul(l_inv, p_inv))
             else:
